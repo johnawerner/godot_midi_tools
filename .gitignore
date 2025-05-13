@@ -1,6 +1,5 @@
 src/*.os
 bin/*
-godot-cpp/*
 .sconsign.dblite
 .vscode/c_cpp_properties.json
 .vscode/settings.json
