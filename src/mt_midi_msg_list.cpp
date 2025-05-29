@@ -50,12 +50,12 @@ void MTMidiMsgList::insert_after_equal_tick(MTMidiMsg* msg){}
 /// A protected method only useable by the MTMidiTrack friend class
 /// @param msg Pointer to MTMidiMsg to remove
 /// @return Pointer to removed MTMidiMsg on success, else a nullptr
-MTMidiMsg* MTMidiMsgList::remove(MTMidiMsg* msg){ return nullptr; }
+MTMidiMsg* MTMidiMsgList::remove(MTMidiMsg *msg){ return nullptr; }
 
 /// @brief Returns the zero-based index of the given message
 /// @param msg Pointer to MTMidiMsg to find
 /// @return int, index of MTMidiMsg pointer if found, else -1
-int MTMidiMsgList::find_index(MTMidiMsg* msg){ return -1; }
+int MTMidiMsgList::find_index(MTMidiMsg *msg){ return -1; }
 
 /// @brief Returns the message at the given zero-based index
 /// @param index int, zero-based index of desired message

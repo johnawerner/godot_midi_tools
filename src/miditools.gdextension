@@ -7,6 +7,8 @@ compatibility_minimum = "4.4"
 
 windows.debug.x86_64 = "res://bin/libmiditools.windows.template_debug.x86_64.dll"
 windows.release.x86_64 = "res://bin/libmiditools.windows.template_release.x86_64.dll"
+linux.debug.x86_64 = "res://bin/libmiditools.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://bin/libmiditools.linux.template_release.x86_64.so"
 
 [dependencies]
 

@@ -15,7 +15,7 @@ env = SConscript("godot-cpp/SConstruct")
 # tweak this if you want to use different folders, or more folders, to store your source code in.
 env.Append(CPPPATH=["src/","fluidsynth/include/"])
 env.Append(LIBPATH=["fluidsynth/lib"])
-env.Append(LIBS=["fluidsynth.dll"])
+env.Append(LIBS=["fluidsynth"])
 sources = Glob("src/*.cpp")
 
 if env["platform"] == "macos":

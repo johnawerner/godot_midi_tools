@@ -1,4 +1,5 @@
 #include "mt_midi_msg.hpp"
+#include "mt_midi_file_stream.hpp"
 
 using namespace godot;
 
@@ -29,12 +30,12 @@ MTMidiMsg::MTMidiMsg()
     tick = 0;
 }
 
-MTMidiMsg::MTMidiMsg(uint64_t tick, uint8_t statusByte, int32_t dataLength) :
+MTMidiMsg::MTMidiMsg(uint64_t tick, uint8_t status_byte, int32_t data_length) :
     tick(tick)
 {
     id = next_msg_id++;
-    msg_bytes.resize(dataLength + 1);
-    msg_bytes.set(0, statusByte);
+    msg_bytes.resize(data_length + 1);
+    msg_bytes.set(0, status_byte);
 }
 
 MTMidiMsg::MTMidiMsg(uint64_t tick, PackedByteArray msg_as_bytes) :
@@ -96,10 +97,10 @@ PackedByteArray MTMidiMsg::get_msg_as_bytes()
 
 uint8_t MTMidiMsg::read_data_value(int32_t index)
 {
-    if ((dataLength > index) &&
-        (msg_bytes.size() > dataStart + index))
+    if ((data_length > index) &&
+        (msg_bytes.size() > data_start + index))
     {
-        return msg_bytes[dataStart + index];
+        return msg_bytes[data_start + index];
     }
     return 0xFF;
 }
@@ -128,11 +129,11 @@ String MTMidiMsg::get_meta_msg_text()
     if ((msg_bytes.size() > 3) &&
         (metaType >= MetaMsgType::TextEvent) &&
         (metaType <= MetaMsgType::CuePoint) &&
-        (dataLength > 0) &&
-        (dataStart < msg_bytes.size()) &&
-        (dataStart + dataLength <= msg_bytes.size()))
+        (data_length > 0) &&
+        (data_start < msg_bytes.size()) &&
+        (data_start + data_length <= msg_bytes.size()))
     {
-        buffer.append_array(msg_bytes.slice(dataStart, dataStart + dataLength));
+        buffer.append_array(msg_bytes.slice(data_start, data_start + data_length));
     }
     else
     {
@@ -147,7 +148,7 @@ MTMidiMsg *MTMidiMsg::read_msg(
     uint8_t& running_status,
     uint8_t& channel_prefix,
     uint8_t& port_prefix,
-    MTDataBuffer buffer,
+    MTDataBuffer &buffer,
     int32_t& bytes_read)
 {
     bytes_read = 0;
@@ -177,7 +178,7 @@ MTMidiMsg *MTMidiMsg::read_msg(
                 if (msg != nullptr)
                 {
                     channel_prefix = msg->get_channel();
-                    msg->portPrefix = port_prefix;
+                    msg->port_prefix = port_prefix;
                 }
                 return msg;
             }
@@ -191,7 +192,7 @@ MTMidiMsg *MTMidiMsg::read_msg(
                         MTMidiMsg* msg = read_sysex_msg(tick, status_byte, buffer, read_count);
                         if (msg != nullptr)
                         {
-                            msg->portPrefix = port_prefix;
+                            msg->port_prefix = port_prefix;
                         }
                         bytes_read = read_count > -1 ? bytes_read + read_count : read_count;
                         return msg;
@@ -213,14 +214,14 @@ MTMidiMsg *MTMidiMsg::read_msg(
                                 port_prefix = msg->read_data_value(0);
                             }
 
-                            msg->channelPrefix = channel_prefix;
-                            msg->portPrefix = port_prefix;
+                            msg->channel_prefix = channel_prefix;
+                            msg->port_prefix = port_prefix;
                         }
                         return msg;
                     }
                     break;
                 default: // Unknown event
-                    WARN_PRINT_ED("Unrecognized event type: " + status_byte);
+                    WARN_PRINT_ED(vformat("Unrecognized event type: %d", status_byte));
                     break;
             }
             break;
@@ -231,7 +232,7 @@ MTMidiMsg *MTMidiMsg::read_msg(
 MTMidiMsg *MTMidiMsg::read_channel_msg(
     uint64_t ticks,
     uint8_t status_byte,
-    MTDataBuffer buffer,
+    MTDataBuffer &buffer,
     int32_t& bytes_read)
 {
     bytes_read = 0;
@@ -277,7 +278,7 @@ MTMidiMsg *MTMidiMsg::read_channel_msg(
             }
             else
             {
-                WARN_PRINT_ED("Not enough data to read double-byte FSMidiMsg");
+                WARN_PRINT_ED("Not enough data to read double-byte MTMidiMsg");
                 bytes_read = -1;
             }
             break;
@@ -304,14 +305,14 @@ MTMidiMsg *MTMidiMsg::read_channel_msg(
 MTMidiMsg *MTMidiMsg::read_meta_msg(
     uint64_t ticks,
     uint8_t status_byte,
-    MTDataBuffer buffer,
+    MTDataBuffer &buffer,
     int32_t& bytes_read)
 {
     bytes_read = 0;
 
     if (status_byte != NonChMsgType::Meta)
     {
-        WARN_PRINT_ED("Unrecognized event type while reading MTMidiMsg: " + status_byte );
+        WARN_PRINT_ED(vformat("Unrecognized event type while reading MTMidiMsg: %d", status_byte ));
         return nullptr;
     }
 
@@ -336,8 +337,8 @@ MTMidiMsg *MTMidiMsg::read_meta_msg(
                 PackedByteArray tmp = MTMidiFileStream::uint32_to_variable_length(vlValue);
                 msg->msg_bytes.append_array(tmp);
                 msg->msg_bytes.append_array(tmp_buffer);
-                msg->dataLength = vlValue;
-                msg->dataStart = 2 + tmp.size();
+                msg->data_length = vlValue;
+                msg->data_start = 2 + tmp.size();
                 return msg;
             }
         }
@@ -351,15 +352,15 @@ MTMidiMsg *MTMidiMsg::read_meta_msg(
 MTMidiMsg *MTMidiMsg::read_sysex_msg(
     uint64_t ticks,
     uint8_t status_byte,
-    MTDataBuffer buffer,
-    int32_t& bytes_read)
+    MTDataBuffer &buffer,
+    int32_t &bytes_read)
 {
     bytes_read = 0;
 
     if ((status_byte != NonChMsgType::SysexStart) &&
         (status_byte != NonChMsgType::SysexContOrEsc))
     {
-        WARN_PRINT_ED("Unrecognized event type while reading FSMidiMsg: " + status_byte);
+        WARN_PRINT_ED(vformat("Unrecognized event type while reading MTMidiMsg: %d", status_byte));
         bytes_read = -1;
         return nullptr;
     }
@@ -379,8 +380,8 @@ MTMidiMsg *MTMidiMsg::read_sysex_msg(
             PackedByteArray tmp = MTMidiFileStream::uint32_to_variable_length(vlValue);
             msg->msg_bytes.append_array(tmp);
             msg->msg_bytes.append_array(tmp_buffer);
-            msg->dataLength = vlValue;
-            msg->dataStart = 1 + tmp.size();
+            msg->data_length = vlValue;
+            msg->data_start = 1 + tmp.size();
             return msg;
         }
     }

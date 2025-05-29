@@ -3,11 +3,12 @@
 
 #include "mt_midi_msg.hpp"
 #include "mt_midi_track.hpp"
+#include <godot_cpp/classes/node.hpp>
 
 namespace godot {
 
-class MTMidiMsgList : public Object {
-	GDCLASS(MTMidiMsgList, Object)
+class MTMidiMsgList : public Node {
+    GDCLASS(MTMidiMsgList, Node)
 
     friend MTMidiTrack;
 
@@ -27,11 +28,11 @@ protected:
 public:
     int count();
 
-    int find_index(MTMidiMsg* msg);
+    int find_index(MTMidiMsg *msg);
     MTMidiMsg* get_at(int index);
 
     void reset_iterator();
-    void iterate_to(MTMidiMsg* msg);
+    void iterate_to(MTMidiMsg *msg);
     MTMidiMsg* current_msg();
     MTMidiMsg* next();
 };

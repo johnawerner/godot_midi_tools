@@ -1,14 +1,15 @@
 #ifndef MT_MIDI_MSG_H
 #define MT_MIDI_MSG_H
 
+#include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include "mt_data_buffer.hpp"
 
 namespace godot {
 
-class MTMidiMsg : public Object {
-	GDCLASS(MTMidiMsg, Object)
+class MTMidiMsg : public Node {
+	GDCLASS(MTMidiMsg, Node)
 
 private:
     static uint64_t next_msg_id;
@@ -139,10 +140,10 @@ public:
 
 	uint64_t tick;
 	PackedByteArray msg_bytes;
-	int32_t dataLength;
-	int32_t dataStart;
-	uint8_t channelPrefix;
-	uint8_t portPrefix;
+	int32_t data_length;
+	int32_t data_start;
+	uint8_t channel_prefix;
+	uint8_t port_prefix;
 
 	MTMidiMsg();
     MTMidiMsg(uint64_t tick, uint8_t statusByte, int32_t dataLength);
@@ -150,10 +151,10 @@ public:
     //~MTMidiMsg();
     uint64_t get_id() { return id; }
     uint64_t get_tick() { return tick; }
-	int32_t get_data_length() { return dataLength; }
-	int32_t get_data_start() { return dataStart; }
-	uint8_t get_channel_prefix() { return channelPrefix; }
-	uint8_t get_port_prefix() { return portPrefix; }
+	int32_t get_data_length() { return data_length; }
+	int32_t get_data_start() { return data_start; }
+	uint8_t get_channel_prefix() { return channel_prefix; }
+	uint8_t get_port_prefix() { return port_prefix; }
     static bool is_status_byte(uint8_t byte) { return (byte & 0x80) != 0; };
     int32_t get_status_byte();
     int32_t get_note_value();
@@ -165,10 +166,10 @@ public:
     PackedByteArray copy_binary_data();
     uint8_t get_meta_msg_type();
     String get_meta_msg_text();
-	static MTMidiMsg *read_msg(uint64_t tick, uint8_t& running_status, uint8_t& channel_prefix, uint8_t& port_prefix, MTDataBuffer buffer, int32_t& bytes_read);
-    static MTMidiMsg *read_channel_msg(uint64_t tick, uint8_t s_byte, MTDataBuffer buffer, int32_t& bytes_read);
-    static MTMidiMsg *read_meta_msg(uint64_t tick, uint8_t s_byte, MTDataBuffer buffer, int32_t& bytes_read);
-    static MTMidiMsg *read_sysex_msg(uint64_t tick, uint8_t s_byte, MTDataBuffer buffer, int32_t& bytes_read);
+    static MTMidiMsg *read_msg(uint64_t tick, uint8_t& running_status, uint8_t& channel_prefix, uint8_t& port_prefix, MTDataBuffer &buffer, int32_t& bytes_read);
+    static MTMidiMsg *read_channel_msg(uint64_t tick, uint8_t s_byte, MTDataBuffer &buffer, int32_t& bytes_read);
+    static MTMidiMsg *read_meta_msg(uint64_t tick, uint8_t s_byte, MTDataBuffer &buffer, int32_t& bytes_read);
+    static MTMidiMsg *read_sysex_msg(uint64_t tick, uint8_t s_byte, MTDataBuffer &buffer, int32_t& bytes_read);
     PackedByteArray to_array(uint64_t &current_tick);
     int32_t length_in_bytes(uint64_t &current_tick);
     int32_t read_tempo();

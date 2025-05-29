@@ -5,12 +5,12 @@
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include "mt_midi_msg.hpp"
+#include "mt_midi_file_stream.hpp"
 
 
 namespace godot {
 
 class MTMidiTrack : public Object {
-	GDCLASS(MTMidiTrack, Object)
 
 private:
     List<MTMidiMsg*> msgs;

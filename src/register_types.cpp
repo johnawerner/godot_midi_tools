@@ -2,6 +2,7 @@
 
 #include "mt_fluid_synth_node.hpp"
 #include "mt_midi_file.hpp"
+#include "mt_midi_msg.hpp"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>

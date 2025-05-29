@@ -1,4 +1,5 @@
 #include "mt_midi_track.hpp"
+#include "mt_midi_file_stream.hpp"
 
 using namespace godot;
 
@@ -27,7 +28,7 @@ MTMidiTrack *MTMidiTrack::read_track(
 
     if (header.chunk_type != MIDIChunkHeader::HeaderType::Track)
     {
-        WARN_PRINT_ED("Skipping track due to unrecognized header type: " + header.chunk_type);
+        WARN_PRINT_ED(vformat("Skipping track due to unrecognized header type: %d", header.chunk_type));
         if (header.chunk_length <= file_stream.get_readable_byte_count())
         {
             PackedByteArray bit_bucket;
@@ -43,9 +44,8 @@ MTMidiTrack *MTMidiTrack::read_track(
     if (file_stream.get_readable_byte_count() < header.chunk_length)
     {
         result = Error::ERR_FILE_EOF;
-        WARN_PRINT_ED("Not enough data to read MTMidiTrack #" + String::num_uint64(track_id) +
-                        ", Remaining: " + file_stream.get_readable_byte_count() +
-                        ", Track length: " + header.chunk_length);
+        WARN_PRINT_ED(vformat("Not enough data to read MTMidiTrack #%d, Remaining: %d, Track length: %d",
+            String::num_uint64(track_id), file_stream.get_readable_byte_count(), header.chunk_length));
         return nullptr;
     }
 
@@ -60,7 +60,7 @@ MTMidiTrack *MTMidiTrack::read_track(
         return nullptr;
     }
 
-    int bytesRead = 0;
+    int bytes_read = 0;
     uint64_t tick = 0;
     uint8_t running_status = 0;
     uint8_t channel_prefix = 0;
@@ -68,45 +68,52 @@ MTMidiTrack *MTMidiTrack::read_track(
     uint32_t tick_delta;
     uint32_t delta_size;
 
-    MTDataBuffer data_buffer = MTDataBuffer(buffer);                    
+    MTDataBuffer *data_buffer = memnew(MTDataBuffer(buffer));                    
 
-    // TODO: Add type 2 support: Check for a Sequence Number Meta message, which
-    // must occur BEFORE any tick deltas.
-
-    while (success && (data_buffer.unread_count() > 0) && (bytesRead < header.chunk_length))
+    if (data_buffer != nullptr)
     {
-        if (data_buffer.read_variable_length(tick_delta, delta_size) == Error::OK)
+        // TODO: Add type 2 support: Check for a Sequence Number Meta message, which
+        // must occur before any non-zero tick deltas.
+
+        // TODO: Add SMPTE timecode support: Check for a SMPTE Offset message, which
+        // must occur before any non-zero tick deltas.
+
+        while (success && (data_buffer->unread_count() > 0) && (bytes_read < header.chunk_length))
         {
-            bytesRead += delta_size;
-            tick += tick_delta;
-
-            int32_t read_length;
-            MTMidiMsg* readEvt = MTMidiMsg::read_msg(tick, running_status,
-                                    channel_prefix, port_prefix, data_buffer, read_length);
-
-            if (read_length != -1)
+            if (data_buffer->read_variable_length(tick_delta, delta_size) == Error::OK)
             {
-                bytesRead += read_length;
-                track->msgs.push_back(readEvt);
+                bytes_read += delta_size;
+                tick += tick_delta;
+
+                int32_t read_length;
+                MTMidiMsg* readEvt = MTMidiMsg::read_msg(tick, running_status,
+                                        channel_prefix, port_prefix, *data_buffer, read_length);
+
+                if (read_length != -1)
+                {
+                    bytes_read += read_length;
+                    track->msgs.push_back(readEvt);
+                }
+                else
+                {
+                    WARN_PRINT_ED(vformat("Unrecoverable error reading MIDI message in track %d", track_id));
+                    success = false;
+                }
             }
             else
             {
-                WARN_PRINT_ED("Unrecoverable error reading MIDI message in track " + track_id);
+                WARN_PRINT_ED(vformat("Unrecoverable error reading tick delta VLV in track %d", track_id));
                 success = false;
             }
         }
-        else
-        {
-            WARN_PRINT_ED("Unrecoverable error reading tick delta VLV in track " + track_id);
-            success = false;
-        }
+
+        memdelete(data_buffer);
     }
 
-    if (bytesRead != header.chunk_length)
+    if (bytes_read != header.chunk_length)
     {
-        WARN_PRINT_ED("Error in track #" + String::num_uint64(track_id) +
-                        ": Bytes read count " + bytesRead +
-                        " does not match chunk length " + header.chunk_length);
+        WARN_PRINT_ED(vformat("Error in track #%d : Bytes read count %d does not match chunk length %d",
+            String::num_uint64(track_id), bytes_read, header.chunk_length));
         success = false;
     }
 
@@ -120,17 +127,17 @@ MTMidiTrack *MTMidiTrack::read_track(
     return track;
 }
 
-Error MTMidiTrack::write_events_to_stream(MTMidiFileStream fStream)
+Error MTMidiTrack::write_events_to_stream(MTMidiFileStream file_stream)
 {
-    uint64_t currentTick = 0;
+    uint64_t current_tick = 0;
 
     Error result;
     for (MTMidiMsg* msg : msgs)
     {
-        PackedByteArray data = msg->to_array(currentTick);
+        PackedByteArray data = msg->to_array(current_tick);
         if (data.size() > 0)
         {
-            result = fStream.write_bytes(data);
+            result = file_stream.write_bytes(data);
         }
     }
     return result;
@@ -138,15 +145,15 @@ Error MTMidiTrack::write_events_to_stream(MTMidiFileStream fStream)
 
 int MTMidiTrack::get_length_in_bytes()
 {
-    int dataLength = 0;
-    uint64_t currentTick = 0;
+    int data_length = 0;
+    uint64_t current_tick = 0;
 
     for (MTMidiMsg* msg : msgs)
     {
-        dataLength += msg->length_in_bytes(currentTick);
+        data_length += msg->length_in_bytes(current_tick);
     }
 
-    return dataLength;
+    return data_length;
 }
 
 void MTMidiTrack::update_meta_data()

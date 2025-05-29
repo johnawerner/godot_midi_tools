@@ -21,51 +21,51 @@ MTMidiFile::~MTMidiFile()
         memdelete(element.value);
     }
 
-    memdelete(playable_list);
+    //memdelete(playable_list);
 }
 
 bool MTMidiFile::read_file(String file_path)
 {
     bool success = true;
-    MTMidiFileStream fileStream;
-    last_error = fileStream.open_to_read(file_path);
+    MTMidiFileStream file_stream;
+    last_error = file_stream.open_to_read(file_path);
     if (last_error == Error::OK)
     {
         // Set file name
         update_file_name(file_path);
 
-        if (process_file_header(fileStream))
+        if (process_file_header(file_stream))
         {
-            for (int curTrack = 0; curTrack < track_count && (last_error == Error::OK); ++curTrack)
+            for (int current_track = 0; current_track < track_count && (last_error == Error::OK); ++current_track)
             {
-                MTMidiTrack *track = MTMidiTrack::read_track(fileStream, curTrack, last_error);
+                MTMidiTrack *track = MTMidiTrack::read_track(file_stream, current_track, last_error);
 
                 if (last_error == Error::OK)
                 {
                     if (track->TrackMsgs().size() > 0)
                     {
-                        tracks.insert(curTrack, track);
+                        tracks.insert(current_track, track);
                     }
                 }
                 else
                 {
                     success = false;
-                    WARN_PRINT_ED("Error reading track: " + MTMidiFileStream::ErrorMsgs[last_error]);
+                    WARN_PRINT_ED(vformat("Error reading track: %s", file_stream.ErrorMsgs[last_error]));
                 }
             }
         }
         else
         {
             success = false;
-            WARN_PRINT_ED("Error reading file header: " + MTMidiFileStream::ErrorMsgs[last_error]);
+            WARN_PRINT_ED(vformat("Error reading file header: %s", file_stream.ErrorMsgs[last_error]));
         }
 
-        fileStream.close_file();
+        file_stream.close_file();
     }
     else
     {
         // Error, could not open file
-        WARN_PRINT_ED("Could not open file: " + file_path + " : Error - " + MTMidiFileStream::ErrorMsgs[last_error]);
+        WARN_PRINT_ED(vformat("Could not open file: %s : Error - %s", file_path, file_stream.ErrorMsgs[last_error]));
         success = false;
     }
     return success;
@@ -127,7 +127,7 @@ bool MTMidiFile::write_file(String file_path, bool overwrite)
         }
         else
         {
-            WARN_PRINT_ED("Error writing file: " + MTMidiFileStream::ErrorMsgs[last_error]);
+            WARN_PRINT_ED(vformat("Error writing file: %s", file_stream.ErrorMsgs[last_error]));
         }
     }
 
@@ -137,23 +137,23 @@ bool MTMidiFile::write_file(String file_path, bool overwrite)
 bool MTMidiFile::process_file_header(MTMidiFileStream fileStream)
 {
     bool success = true;
-    MIDIChunkHeader chunkHdr(MIDIChunkHeader::HeaderType::Unknown, 0);
-    last_error = fileStream.read_chunk_header(chunkHdr);
-    if ((last_error == Error::OK) && (chunkHdr.chunk_type == MIDIChunkHeader::HeaderType::File))
+    MIDIChunkHeader chunk_header(MIDIChunkHeader::HeaderType::Unknown, 0);
+    last_error = fileStream.read_chunk_header(chunk_header);
+    if ((last_error == Error::OK) && (chunk_header.chunk_type == MIDIChunkHeader::HeaderType::File))
     {
-        if (chunkHdr.chunk_length != 6)
+        if (chunk_header.chunk_length != 6)
         {
-            WARN_PRINT_ED("Unexpected file header length: " + chunkHdr.chunk_length);
+            WARN_PRINT_ED(vformat("Unexpected file header length: %d", chunk_header.chunk_length));
             success = false;
         }
 
         if (success)
         {
-            uint16_t format = chunkHdr.get_format();
-            uint16_t division = chunkHdr.get_division();
+            uint16_t format = chunk_header.get_format();
+            uint16_t division = chunk_header.get_division();
             if ((format != 0) && (format != 1))
             {
-                WARN_PRINT_ED("Unexpected file format: " + file_format);
+                WARN_PRINT_ED(vformat("Unexpected file format: %d", file_format));
                 success = false;
             }
 
@@ -178,7 +178,7 @@ bool MTMidiFile::process_file_header(MTMidiFileStream fileStream)
     else
     {
         // Error, unrecognized file header
-        WARN_PRINT_ED("Error reading MIDI file header: " + MTMidiFileStream::ErrorMsgs[last_error]);
+        WARN_PRINT_ED(vformat("Error reading MIDI file header: %s", fileStream.ErrorMsgs[last_error]));
         success = false;
     }
     return success;
@@ -201,8 +201,8 @@ void MTMidiFile::mark_all_tracks_saved()
 
 MTMidiMsgList* MTMidiFile::build_playable_msg_list()
 {
-   /* bool success = true;
-    List<MTMidiMsg> msgList;
+/*    bool success = true;
+    List<MTMidiMsg*> msgList;
     // Iterator for end comparison for all List<MTMidiMsg> iterators,
     // just an iterator with element pointer = nullptr
     List<MTMidiMsg*>::Iterator end;
@@ -212,9 +212,9 @@ MTMidiMsgList* MTMidiFile::build_playable_msg_list()
         float processedMsgCount = 0;
 
         List<List<MTMidiMsg*>::Iterator> track_iters;
-        for (KeyValue<uint32_t, MTMidiTrack> element : tracks)
+        for (KeyValue<uint32_t, MTMidiTrack*> element : tracks)
         {
-            MTMidiTrack track = element.value;
+            MTMidiTrack track = *element.value;
             end = track.TrackMsgs().end();
             if (track.TrackMsgs().size() > 0)
             {
@@ -241,7 +241,7 @@ MTMidiMsgList* MTMidiFile::build_playable_msg_list()
             MTMidiMsg* currentMsg = *next;
             ++next;
 
-            msgList.push_back(*currentMsg);
+            msgList.push_back(currentMsg);
 
             if (next == end)
             {
@@ -275,5 +275,5 @@ MTMidiMsgList* MTMidiFile::build_playable_msg_list()
         msgList.clear();
     }
 */
-    return playable_list;
+    return memnew(MTMidiMsgList());
 }

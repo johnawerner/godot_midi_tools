@@ -1,13 +1,13 @@
 #ifndef MT_DATA_BUFFER_H
 #define MT_DATA_BUFFER_H
 
-#include <godot_cpp/classes/ref_counted.hpp>
+#include <godot_cpp/core/object.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include "mt_midi_file_stream.hpp"
 
 namespace godot {
 
-class MTDataBuffer : public RefCounted {
+class MTDataBuffer : public Object {
     private:
     PackedByteArray data;
     uint64_t index;

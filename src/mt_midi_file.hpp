@@ -1,7 +1,7 @@
 #ifndef MT_MIDI_FILE_H
 #define MT_MIDI_FILE_H
 
-#include <godot_cpp/classes/ref_counted.hpp>
+#include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/variant/array.hpp>
@@ -12,10 +12,10 @@
 
 namespace godot {
 
-class MTMidiFile : public RefCounted {
-    GDCLASS(MTMidiFile, RefCounted)
+class MTMidiFile : public Node {
+    GDCLASS(MTMidiFile, Node)
 
-    MTMidiMsgList *playable_list;
+    //MTMidiMsgList *playable_list;
     
     protected:
 	static void _bind_methods();
